@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     protected $connection = 'mysql_auth';
 
@@ -41,5 +42,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function workExperiences()
     {
         return $this->hasMany(WorkExperience::class);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function (User $user) {
+            $user->assignRole('customer');
+        });
     }
 }

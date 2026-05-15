@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
+use App\Models\PersonalAccessToken;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -26,22 +28,25 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
-        VerifyEmail::createUrlUsing(function ($notifiable) {
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-
-            $verifyUrl = URL::temporarySignedRoute(
+        VerifyEmail::createUrlUsing(function (object $notifiable) {
+            $url = URL::temporarySignedRoute(
                 'verification.verify',
-                Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
+                now()->addMinutes(Config::get('auth.verification.expire', 60)),
                 [
                     'id' => $notifiable->getKey(),
                     'hash' => sha1($notifiable->getEmailForVerification()),
                 ]
             );
-
-            // Parse the query string to append to the frontend url
-            $query = parse_url($verifyUrl, PHP_URL_QUERY);
-
-            return $frontendUrl . '/verify-email/confirm?id=' . $notifiable->getKey() . '&hash=' . sha1($notifiable->getEmailForVerification()) . '&' . $query;
+            $parsedUrl = parse_url($url);
+            parse_str($parsedUrl['query'] ?? '', $query);
+            $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
+            return $frontendUrl . '/verify-email/confirm' .
+                '?id=' . $query['id'] .
+                '&hash=' . $query['hash'] .
+                '&expires=' . $query['expires'] .
+                '&signature=' . $query['signature'];
         });
+
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
 }

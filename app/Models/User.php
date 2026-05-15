@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Support\Facades\Log;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -49,7 +50,11 @@ class User extends Authenticatable implements MustVerifyEmail
         parent::boot();
 
         static::created(function (User $user) {
-            $user->assignRole('customer');
+            try {
+                $user->assignRole('customer');
+            } catch (\Exception $e) {
+                Log::error("Gagal memberikan role customer ke user {$user->id}: " . $e->getMessage());
+            }
         });
     }
 }

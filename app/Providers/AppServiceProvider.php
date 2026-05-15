@@ -41,10 +41,10 @@ class AppServiceProvider extends ServiceProvider
             parse_str($parsedUrl['query'] ?? '', $query);
             $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
             return $frontendUrl . '/verify-email/confirm' .
-                '?id=' . $query['id'] .
-                '&hash=' . $query['hash'] .
-                '&expires=' . $query['expires'] .
-                '&signature=' . $query['signature'];
+                '?id=' . $notifiable->getKey() .
+                '&hash=' . sha1($notifiable->getEmailForVerification()) .
+                '&expires=' . ($query['expires'] ?? '') .
+                '&signature=' . ($query['signature'] ?? '');
         });
 
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);

@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\Events\Registered;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -106,5 +108,52 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => 'Successfully verified']);
+    }
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+            
+            $user = User::where('google_id', $googleUser->id)
+                ->orWhere('email', $googleUser->email)
+                ->first();
+
+            if (! $user) {
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'google_id' => $googleUser->id,
+                    'avatar' => $googleUser->avatar,
+                    'password' => null, // No password for Google users
+                ]);
+                
+                // Mark email as verified for Google users
+                $user->markEmailAsVerified();
+                event(new Registered($user));
+            } else {
+                // Update existing user if they didn't have google_id yet
+                if (!$user->google_id) {
+                    $user->update([
+                        'google_id' => $googleUser->id,
+                        'avatar' => $googleUser->avatar,
+                    ]);
+                }
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect back to frontend with token
+            $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
+            return redirect()->away($frontendUrl . '/login?token=' . $token . '&user=' . urlencode(json_encode($user)));
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Google authentication failed: ' . $e->getMessage()], 500);
+        }
     }
 }

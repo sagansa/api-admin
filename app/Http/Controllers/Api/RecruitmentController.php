@@ -49,11 +49,23 @@ class RecruitmentController extends Controller
             'driver_license' => 'nullable|string|max:255',
             'ktp_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'selfie_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'bank_account_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
         ]);
 
         $details = ApplicantDetail::where('user_id', $user->id)->first();
-        if ($details && $details->status === 'submitted') {
-            return response()->json(['success' => false, 'message' => 'Profile is already submitted and cannot be changed.'], 403);
+        if ($details && in_array($details->status, ['submitted', 'accepted', 'reviewed', 'rejected'])) {
+            if ($details->join_date) {
+                $allowedKeys = ['bank_account_name', 'bank_account_number', 'bank_name'];
+                foreach ($request->keys() as $key) {
+                    if (!in_array($key, $allowedKeys) && $request->has($key) && $request->input($key) != $details->$key) {
+                        return response()->json(['success' => false, 'message' => 'Profile is locked. Only bank account details can be updated.'], 403);
+                    }
+                }
+            } else {
+                return response()->json(['success' => false, 'message' => 'Profile is already submitted and cannot be changed.'], 403);
+            }
         }
 
         $data = $request->except(['ktp_image', 'selfie_image']);

@@ -32,6 +32,16 @@ class ApplicantDetail extends Model
         'emergency_phone',
         'emergency_name',
         'driver_license',
+        'join_date',
+        'bank_account_name',
+        'bank_account_number',
+        'bank_name',
+        'admin_fee',
+    ];
+
+    protected $casts = [
+        'join_date' => 'date',
+        'admin_fee' => 'decimal:2',
     ];
 
     protected $appends = ['ktp_image_url', 'selfie_image_url'];

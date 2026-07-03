@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RecruitmentController;
+use App\Http\Controllers\Api\MarketplaceOrderSyncController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,4 +26,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/profile/experience/{id}', [RecruitmentController::class, 'deleteExperience']);
     
     Route::delete('/profile/image', [RecruitmentController::class, 'deleteImage']);
+
+    Route::post('/marketplace/orders/sync', [MarketplaceOrderSyncController::class, 'sync']);
 });
